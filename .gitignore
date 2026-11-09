@@ -23,11 +23,18 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
 .env*.local
 
 # SQLite database
-dev.db
-dev.db-journal
+*.db
+*.db-journal
+
+# uploads
+public/uploads/*
+!public/uploads/.gitkeep
+public/uploads/slips/*
+!public/uploads/slips/.gitkeep
 
 # typescript
 *.tsbuildinfo
