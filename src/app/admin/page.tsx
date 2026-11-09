@@ -439,34 +439,36 @@ export default function AdminPage() {
       )}
 
       {/* Navigation Tabs Bar */}
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
-        {navTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold font-thai shrink-0 transition-all active:scale-95 ${
-                isActive
-                  ? 'bg-rose-500 text-white shadow-md shadow-rose-200'
-                  : 'bg-white border border-rose-100 text-gray-600 hover:bg-rose-50/60'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && tab.count > 0 && (
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive ? 'bg-white text-rose-600' : 'bg-rose-100 text-rose-600'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div className="bg-white/95 backdrop-blur-md rounded-3xl p-3 sm:p-3.5 shadow-sm border border-rose-100 mb-6">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          {navTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-bold font-thai transition-all active:scale-95 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white shadow-md shadow-rose-200'
+                    : 'bg-rose-50/40 hover:bg-rose-100/70 text-gray-700 border border-rose-100 hover:border-rose-200'
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">{tab.label}</span>
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5 ${
+                      isActive ? 'bg-white text-rose-600' : 'bg-rose-200 text-rose-700'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* TAB 1: ORDERS & BRIEFS & QUEUE */}
