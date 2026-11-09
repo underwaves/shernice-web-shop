@@ -522,6 +522,7 @@ export default function AdminPage() {
                     <th className="py-3 px-4">ลูกค้า</th>
                     <th className="py-3 px-4">ฮีโร่ / สกิน</th>
                     <th className="py-3 px-4">ยอดชำระ</th>
+                    <th className="py-3 px-4">สลิปโอนเงิน</th>
                     <th className="py-3 px-4">สถานะ</th>
                     <th className="py-3 px-4 text-right">การจัดการ</th>
                   </tr>
@@ -546,6 +547,27 @@ export default function AdminPage() {
                       </td>
                       <td className="py-3 px-4 font-mono font-bold text-gray-700">
                         {ord.totalPrice} ฿
+                      </td>
+                      <td className="py-3 px-4">
+                        {ord.slipApproved ? (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" /> อนุมัติสลิป (+1 แต้ม)
+                          </span>
+                        ) : ord.slipUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => handleApproveSlip(ord.queueNumber, true)}
+                            className="px-2.5 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+                            title="คลิกเพื่ออนุมัติสลิปและมอบแต้มสะสม"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            <span>อนุมัติสลิป (+1 แต้ม)</span>
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-gray-400 font-thai">
+                            ยังไม่แนบสลิป
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <select
@@ -619,8 +641,32 @@ export default function AdminPage() {
               </div>
               {selectedOrder.slipUrl && (
                 <div className="pt-2">
-                  <span className="text-gray-400 block mb-1">สลิปที่แนบมา:</span>
-                  <img src={selectedOrder.slipUrl} alt="Slip" className="max-h-56 rounded-xl border object-contain mx-auto" />
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-gray-400 text-xs">สลิปที่แนบมา:</span>
+                    {selectedOrder.slipApproved ? (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold">
+                        ✓ สลิปอนุมัติแล้ว (+1 แต้ม)
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full font-bold">
+                        รอตรวจสอบสลิป
+                      </span>
+                    )}
+                  </div>
+                  <img src={selectedOrder.slipUrl} alt="Slip" className="max-h-56 rounded-xl border object-contain mx-auto mb-2" />
+                  {!selectedOrder.slipApproved && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleApproveSlip(selectedOrder.queueNumber, true);
+                        setSelectedOrder({ ...selectedOrder, slipApproved: true });
+                      }}
+                      className="w-full py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs font-thai shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>อนุมัติสลิปโอนเงิน (มอบ 1 แต้มสะสมทันที)</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>

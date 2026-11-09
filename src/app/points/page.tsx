@@ -15,6 +15,7 @@ import {
   MessageSquareHeart,
   Send,
   Lock,
+  ClipboardList,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -285,6 +286,49 @@ function PointsContent() {
               )}
             </div>
           </div>
+
+          {/* Customer Orders & Slip Status Section */}
+          {data.customerOrders && data.customerOrders.length > 0 && (
+            <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-sm border border-rose-100 space-y-3 font-thai text-xs sm:text-sm">
+              <h4 className="font-bold text-gray-800 flex items-center gap-1.5 text-sm">
+                <ClipboardList className="w-4 h-4 text-rose-500" />
+                <span>สถานะออเดอร์และการสะสมแต้ม</span>
+              </h4>
+              <div className="divide-y divide-rose-50">
+                {data.customerOrders.map((ord: any) => (
+                  <div key={ord.id} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                    <div>
+                      <span className="font-mono font-bold text-rose-600 mr-2">{ord.queueNumber}</span>
+                      <span className="text-gray-700">{ord.heroName} - {ord.skinName}</span>
+                    </div>
+                    <div>
+                      {ord.slipApproved ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="w-3 h-3 text-emerald-600" /> อนุมัติสลิปแล้ว (+1 แต้ม)
+                        </span>
+                      ) : ord.slipUrl ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                          <Clock className="w-3 h-3 text-blue-600" /> รอแอดมินอนุมัติสลิปโอนเงิน
+                        </span>
+                      ) : (
+                        <a
+                          href={`/payment?queue=${ord.queueNumber}`}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-0.5 rounded-full transition-colors"
+                        >
+                          ยังไม่แนบสลิป (คลิกแนบสลิป)
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {data.customerOrders.some((o: any) => o.slipUrl && !o.slipApproved) && (
+                <p className="text-[11px] text-blue-700 bg-blue-50/70 p-2.5 rounded-xl border border-blue-100 leading-relaxed">
+                  💡 ทางร้านได้รับสลิปของคุณแล้วนะคะ กำลังรอแอดมินกดอนุมัติสลิป เมื่อสลิปผ่านการอนุมัติแต้มสะสมจะเพิ่มขึ้นทันทีค่ะ
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Prompt to leave a review if not reviewed */}
           {!data.hasApprovedReview && (

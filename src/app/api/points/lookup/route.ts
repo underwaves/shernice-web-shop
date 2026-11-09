@@ -39,7 +39,6 @@ export async function GET(request: Request) {
       if (order.customer) {
         customer = order.customer;
       } else {
-        // Try to find customer by name
         customer = await prisma.customer.findFirst({
           where: { name: order.customerName },
           include: {
@@ -52,7 +51,6 @@ export async function GET(request: Request) {
     }
 
     if (!customer) {
-      // Find customer by name
       customer = await prisma.customer.findFirst({
         where: {
           OR: [
@@ -90,6 +88,19 @@ export async function GET(request: Request) {
         })
       : null;
 
+    // Fetch customer's orders to explain point eligibility/orders status
+    const customerOrders = await prisma.order.findMany({
+      where: {
+        OR: [
+          customer?.id ? { customerId: customer.id } : {},
+          customer?.name ? { customerName: customer.name } : {},
+          matchingOrder?.id ? { id: matchingOrder.id } : {},
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+
     const earnedHistory = (customer?.pointTransactions || []).filter((tx: any) => tx.type === 'EARNED' || (tx.type === 'ADJUSTED' && tx.amount > 0));
     const redeemedHistory = (customer?.pointTransactions || []).filter((tx: any) => tx.type === 'REDEEMED' || (tx.type === 'ADJUSTED' && tx.amount < 0));
 
@@ -100,6 +111,7 @@ export async function GET(request: Request) {
         pointsBalance: 0,
       },
       order: matchingOrder,
+      customerOrders,
       hasApprovedReview: !!hasApprovedReview,
       earnedHistory,
       redeemedHistory,
