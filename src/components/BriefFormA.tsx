@@ -371,7 +371,7 @@ export default function BriefFormA({ initialProduct, onSubmitSuccess }: BriefFor
         {/* Verbatim Warning Text */}
         <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm leading-relaxed font-thai">
           <p className="font-semibold text-rose-600 mb-0.5">⚠️ คำเตือนสำคัญจากทางร้าน:</p>
-          "รบกวนบรีฟให้ละเอียดและครบถ้วน หลังจากส่งงานให้เช็ค หากมีการแก้ไขนอกเหนือจากที่บรีฟไว้ จะมีค่าแก้ไขจุดละ 5–20 บาท ตามความยากง่ายค่ะ"
+          &ldquo;รบกวนบรีฟให้ละเอียดและครบถ้วน หลังจากส่งงานให้เช็ค หากมีการแก้ไขนอกเหนือจากที่บรีฟไว้ จะมีค่าแก้ไขจุดละ 5–20 บาท ตามความยากง่ายค่ะ&rdquo;
         </div>
 
         {/* Submit Button */}

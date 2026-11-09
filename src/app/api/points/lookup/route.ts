@@ -3,68 +3,88 @@ import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+interface SafeOrder {
+  id: number;
+  queueNumber: string;
+  heroName: string;
+  skinName: string;
+  status: string;
+  slipApproved: boolean;
+  hasSlip: boolean;
+}
+
+interface SafeTransaction {
+  id: number;
+  amount: number;
+  type: string;
+  reason: string;
+  createdAt: Date;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q')?.trim();
 
     if (!query) {
-      return NextResponse.json({ error: 'กรุณากรอกชื่อหรือเลขคิวเพื่อค้นหาแต้มสะสม' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'กรุณากรอกชื่อหรือเลขคิวเพื่อค้นหาแต้มสะสม' },
+        { status: 400 }
+      );
     }
 
-    // Try finding by queue number first
+    const isQueuePattern = /^SN\d+$/i.test(query);
+
     let customer: any = null;
     let matchingOrder: any = null;
 
-    const order = await prisma.order.findFirst({
-      where: {
-        OR: [
-          { queueNumber: { equals: query } },
-          { queueNumber: { equals: query.toUpperCase() } },
-        ],
-      },
-      include: {
-        customer: {
-          include: {
-            pointTransactions: {
-              orderBy: { createdAt: 'desc' },
+    if (isQueuePattern) {
+      // 1. Queue number search: Strictly match exact queue number
+      matchingOrder = await prisma.order.findUnique({
+        where: { queueNumber: query.toUpperCase() },
+        include: {
+          customer: {
+            include: {
+              pointTransactions: {
+                orderBy: { createdAt: 'desc' },
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    if (order) {
-      matchingOrder = order;
-      if (order.customer) {
-        customer = order.customer;
-      } else {
-        customer = await prisma.customer.findFirst({
-          where: { name: order.customerName },
-          include: {
-            pointTransactions: {
-              orderBy: { createdAt: 'desc' },
+      if (matchingOrder) {
+        if (matchingOrder.customer) {
+          customer = matchingOrder.customer;
+        } else {
+          customer = await prisma.customer.findFirst({
+            where: { name: matchingOrder.customerName },
+            include: {
+              pointTransactions: {
+                orderBy: { createdAt: 'desc' },
+              },
             },
-          },
-        });
+          });
+        }
       }
-    }
-
-    if (!customer) {
+    } else {
+      // 2. Name search: Match EXACT name only (prevent partial substring leak)
       customer = await prisma.customer.findFirst({
-        where: {
-          OR: [
-            { name: { equals: query } },
-            { name: { contains: query } },
-            { contactId: { equals: query } },
-          ],
-        },
+        where: { name: { equals: query } },
         include: {
           pointTransactions: {
             orderBy: { createdAt: 'desc' },
           },
         },
       });
+
+      // Fallback: If customer record wasn't created yet, check order with exact customer name
+      if (!customer) {
+        matchingOrder = await prisma.order.findFirst({
+          where: { customerName: { equals: query } },
+          orderBy: { createdAt: 'desc' },
+        });
+      }
     }
 
     if (!customer && !matchingOrder) {
@@ -74,52 +94,116 @@ export async function GET(request: Request) {
       );
     }
 
-    // Check if customer has approved review
-    const hasApprovedReview = customer
+    const customerName = customer?.name || matchingOrder?.customerName || '';
+    const customerId = customer?.id || null;
+
+    // Check review eligibility without exposing review text or personal details
+    const reviewConditions: any[] = [];
+    if (customerId) {
+      reviewConditions.push({ customerId });
+    }
+    if (customerName) {
+      reviewConditions.push({ customerName });
+    }
+    if (matchingOrder?.queueNumber) {
+      reviewConditions.push({ queueNumber: matchingOrder.queueNumber });
+    }
+
+    const approvedReview = reviewConditions.length > 0
       ? await prisma.review.findFirst({
           where: {
             status: 'APPROVED',
-            OR: [
-              { customerId: customer.id },
-              { customerName: customer.name },
-              { contactId: customer.contactId },
-            ],
+            OR: reviewConditions,
           },
+          select: { id: true },
         })
       : null;
 
-    // Fetch customer's orders to explain point eligibility/orders status
-    const customerOrders = await prisma.order.findMany({
-      where: {
-        OR: [
-          customer?.id ? { customerId: customer.id } : {},
-          customer?.name ? { customerName: customer.name } : {},
-          matchingOrder?.id ? { id: matchingOrder.id } : {},
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
+    // Build order conditions cleanly without empty objects
+    const orderConditions: any[] = [];
+    if (isQueuePattern && matchingOrder) {
+      // When queried by queue number, strictly limit scope to that specific order
+      orderConditions.push({ id: matchingOrder.id });
+    } else if (customerId) {
+      orderConditions.push({ customerId });
+    } else if (customerName) {
+      orderConditions.push({ customerName });
+    } else if (matchingOrder?.id) {
+      orderConditions.push({ id: matchingOrder.id });
+    }
 
-    const earnedHistory = (customer?.pointTransactions || []).filter((tx: any) => tx.type === 'EARNED' || (tx.type === 'ADJUSTED' && tx.amount > 0));
-    const redeemedHistory = (customer?.pointTransactions || []).filter((tx: any) => tx.type === 'REDEEMED' || (tx.type === 'ADJUSTED' && tx.amount < 0));
+    // Sanitize customer orders: Only return fields needed by points status view
+    // NEVER expose slipUrl, slipHash, contactId, contactPlatform, brief details or prices
+    let sanitizedOrders: SafeOrder[] = [];
+    if (orderConditions.length > 0) {
+      const rawOrders = await prisma.order.findMany({
+        where: {
+          OR: orderConditions,
+        },
+        select: {
+          id: true,
+          queueNumber: true,
+          heroName: true,
+          skinName: true,
+          status: true,
+          slipApproved: true,
+          slipUrl: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      });
+
+      sanitizedOrders = rawOrders.map((ord) => ({
+        id: ord.id,
+        queueNumber: ord.queueNumber,
+        heroName: ord.heroName,
+        skinName: ord.skinName,
+        status: ord.status,
+        slipApproved: ord.slipApproved,
+        hasSlip: Boolean(ord.slipUrl),
+      }));
+    }
+
+    // Sanitize point ledger transactions (omit internal keys)
+    const rawTransactions = customer?.pointTransactions || [];
+    const allTransactions: SafeTransaction[] = rawTransactions.map((tx: any) => ({
+      id: tx.id,
+      amount: tx.amount,
+      type: tx.type,
+      reason: tx.reason,
+      createdAt: tx.createdAt,
+    }));
+
+    const earnedHistory = allTransactions.filter(
+      (tx: SafeTransaction) => tx.type === 'EARNED' || (tx.type === 'ADJUSTED' && tx.amount > 0)
+    );
+    const redeemedHistory = allTransactions.filter(
+      (tx: SafeTransaction) => tx.type === 'REDEEMED' || (tx.type === 'ADJUSTED' && tx.amount < 0)
+    );
+
+    // Sanitized customer profile: Only public display name, ID (for redeem), and point balance
+    // NEVER expose contactPlatform or contactId
+    const sanitizedCustomer = {
+      id: customerId,
+      name: customerName,
+      pointsBalance: customer?.pointsBalance || 0,
+    };
 
     return NextResponse.json({
-      customer: customer || {
-        id: null,
-        name: matchingOrder.customerName,
-        pointsBalance: 0,
-      },
-      order: matchingOrder,
-      customerOrders,
-      hasApprovedReview: !!hasApprovedReview,
+      customer: sanitizedCustomer,
+      customerOrders: sanitizedOrders,
+      hasApprovedReview: Boolean(approvedReview),
       earnedHistory,
       redeemedHistory,
-      allTransactions: customer?.pointTransactions || [],
+      allTransactions,
       targetPoints: 10,
     });
   } catch (error) {
     console.error('Error in points lookup:', error);
-    return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการตรวจสอบแต้ม' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'เกิดข้อผิดพลาดในการตรวจสอบแต้ม' },
+      { status: 500 }
+    );
   }
 }

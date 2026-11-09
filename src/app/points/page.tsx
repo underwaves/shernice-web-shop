@@ -173,7 +173,7 @@ function PointsContent() {
         </h1>
         {/* Verbatim Description */}
         <p className="text-xs sm:text-sm text-rose-600 font-thai mt-2 max-w-md mx-auto font-medium leading-relaxed bg-rose-50 p-2.5 rounded-2xl border border-rose-200">
-          "สงวนสิทธิ์ให้เฉพาะลูกค้าที่รีวิวให้กับทางร้านเท่านั้น หากสะสมครบมีรางวัลสุดพิเศษให้เลือกเย้อมากก"
+          &ldquo;สงวนสิทธิ์ให้เฉพาะลูกค้าที่รีวิวให้กับทางร้านเท่านั้น หากสะสมครบมีรางวัลสุดพิเศษให้เลือกเย้อมากก&rdquo;
         </p>
       </div>
 
@@ -306,7 +306,7 @@ function PointsContent() {
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                           <CheckCircle className="w-3 h-3 text-emerald-600" /> อนุมัติสลิปแล้ว (+1 แต้ม)
                         </span>
-                      ) : ord.slipUrl ? (
+                      ) : (ord.hasSlip || ord.slipUrl) ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
                           <Clock className="w-3 h-3 text-blue-600" /> รอแอดมินอนุมัติสลิปโอนเงิน
                         </span>
@@ -322,7 +322,7 @@ function PointsContent() {
                   </div>
                 ))}
               </div>
-              {data.customerOrders.some((o: any) => o.slipUrl && !o.slipApproved) && (
+              {data.customerOrders.some((o: any) => (o.hasSlip || o.slipUrl) && !o.slipApproved) && (
                 <p className="text-[11px] text-blue-700 bg-blue-50/70 p-2.5 rounded-xl border border-blue-100 leading-relaxed">
                   💡 ทางร้านได้รับสลิปของคุณแล้วนะคะ กำลังรอแอดมินกดอนุมัติสลิป เมื่อสลิปผ่านการอนุมัติแต้มสะสมจะเพิ่มขึ้นทันทีค่ะ
                 </p>
@@ -364,7 +364,7 @@ function PointsContent() {
             </h3>
             {/* Verbatim Rewards text */}
             <p className="text-xs text-gray-500 font-thai mb-4">
-              "เมื่อสะสมครบตามเงื่อนไข สามารถเลือกของรางวัลได้"
+              &ldquo;เมื่อสะสมครบตามเงื่อนไข สามารถเลือกของรางวัลได้&rdquo;
             </p>
 
             <div className="grid grid-cols-2 gap-3">

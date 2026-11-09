@@ -245,7 +245,7 @@ function PaymentContent() {
         {activeMethod === 'promptpay' && (
           <div className="text-center space-y-4">
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl text-xs sm:text-sm text-blue-900 font-thai leading-relaxed">
-              "คิวอาร์นี้ล็อคยอดไว้อยู่แล้ว ลูกค้าบันทึกรูปคิวอาร์แล้วสแกนจ่ายได้เลยค่ะ"
+              &ldquo;คิวอาร์นี้ล็อคยอดไว้อยู่แล้ว ลูกค้าบันทึกรูปคิวอาร์แล้วสแกนจ่ายได้เลยค่ะ&rdquo;
             </div>
 
             {/* QR Image display (NO PromptPay number as text per requirement) */}
@@ -267,7 +267,7 @@ function PaymentContent() {
         {activeMethod === 'kbank' && (
           <div className="text-center space-y-4">
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs sm:text-sm text-emerald-950 font-thai leading-relaxed">
-              "รบกวนโน้ตสลิปทุกครั้งที่ใช้บริการ และตรวจสอบชื่อบัญชีก่อนกดโอน โอนผิดทางร้านไม่รับผิดชอบทุกกรณี"
+              &ldquo;รบกวนโน้ตสลิปทุกครั้งที่ใช้บริการ และตรวจสอบชื่อบัญชีก่อนกดโอน โอนผิดทางร้านไม่รับผิดชอบทุกกรณี&rdquo;
             </div>
 
             {/* Bank Card Image display (QR scan only, NO account number as text per requirement) */}
@@ -290,7 +290,7 @@ function PaymentContent() {
         {activeMethod === 'truemoney' && (
           <div className="text-center space-y-4">
             <div className="p-3 bg-orange-50 border border-orange-200 rounded-2xl text-xs sm:text-sm text-orange-950 font-thai leading-relaxed">
-              "โอนเข้าวอเลตโดยตรง บวกค่าธรรมเนียม 2.- หากยืนยันตัวตนแล้วสแกนจ่ายผ่านวอเลตแบบนี้ไม่บวกเพิ่มค่ะ"
+              &ldquo;โอนเข้าวอเลตโดยตรง บวกค่าธรรมเนียม 2.- หากยืนยันตัวตนแล้วสแกนจ่ายผ่านวอเลตแบบนี้ไม่บวกเพิ่มค่ะ&rdquo;
             </div>
 
             <div className="p-5 rounded-2xl bg-gradient-to-r from-orange-400 to-amber-500 text-white shadow-md max-w-sm mx-auto">

@@ -97,10 +97,16 @@ export default function AdminPage() {
           router.push('/admin/login');
         } else {
           setAuthChecked(true);
-          loadAllData();
+          loadOrders();
+          loadProducts();
+          loadCustomers();
+          loadReviews();
+          loadSettings();
+          loadLogs();
         }
       })
       .catch(() => router.push('/admin/login'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const loadAllData = () => {
@@ -1118,7 +1124,7 @@ export default function AdminPage() {
                   </div>
 
                   <p className="text-xs sm:text-sm text-gray-600 font-thai bg-rose-50/40 p-3 rounded-2xl mb-3 leading-relaxed">
-                    "{rev.comment}"
+                    &ldquo;{rev.comment}&rdquo;
                   </p>
 
                   <div className="text-[11px] text-gray-400 font-thai">
@@ -1484,7 +1490,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <div>
                 <label className="block text-gray-700 font-bold mb-1">
-                  ปุ่ม "ตัวอย่างงานเพิ่มเติม" (Google Drive)
+                  ปุ่ม &ldquo;ตัวอย่างงานเพิ่มเติม&rdquo; (Google Drive)
                 </label>
                 <input
                   type="url"
@@ -1495,7 +1501,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <label className="block text-gray-700 font-bold mb-1">
-                  ปุ่ม "ติดต่อทางร้าน" (Line / Social)
+                  ปุ่ม &ldquo;ติดต่อทางร้าน&rdquo; (Line / Social)
                 </label>
                 <input
                   type="url"
