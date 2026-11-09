@@ -1,0 +1,144 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Setting {
+  id                 Int      @id @default(1)
+  shopName           String   @default("Shernice")
+  bio                String   @default("ยินดีต้อนรับเข้าสู่ร้านของเชอไน้ สนใจบริการตัดรูปแบบใดสามารถเลือก และสอบถามเพิ่มเติมได้นะคะ")
+  avatarUrl          String   @default("/images/avatar.gif")
+  coverUrl           String   @default("/images/cover.gif")
+  driveLink          String   @default("https://drive.google.com")
+  statusLink         String   @default("/queue")
+  contactLink        String   @default("https://line.me/ti/p/@832rjuhx")
+  lineId             String   @default("@832rjuhx")
+  bgMusicUrl         String   @default("https://actions.google.com/sounds/v1/water/rain_heavy.ogg")
+  bgMusicEnabled     Boolean  @default(true)
+  primaryColor       String   @default("#fb7185")
+  secondaryColor     String   @default("#fda4af")
+  accentColor        String   @default("#c084fc")
+  bgColor            String   @default("#fff5f7")
+  cardColor          String   @default("#ffffff")
+  promptpayName      String   @default("น.ส.ปิ่นจุฑา ฟุ้งสกุล")
+  promptpayQrUrl     String   @default("/images/promptpay-qr.png")
+  kbankName          String   @default("น.ส.ปิ่นจุฑา ฟุ้งสกุล")
+  kbankCardUrl       String   @default("/images/kbank-card.png")
+  truemoneyName      String   @default("น.ส.ปิ่นจุฑา ฟุ้งสกุล")
+  truemoneyNumber    String   @default("096-269-4483")
+  truemoneyFee       Float    @default(2.0)
+  adminPasswordHash  String
+  rewardsDescription String   @default("เมื่อสะสมครบตามเงื่อนไข สามารถเลือกของรางวัลได้")
+  rewardsListJson    String   @default("[\"ส่วนลด STK\", \"นฟ\", \"CP\", \"DM\"]")
+  notes              String   @default("สงวนสิทธิ์ให้เฉพาะลูกค้าที่รีวิวให้กับทางร้านเท่านั้น หากสะสมครบมีรางวัลสุดพิเศษให้เลือกเย้อมากก")
+  updatedAt          DateTime @updatedAt
+}
+
+model Product {
+  id                Int      @id @default(autoincrement())
+  code              String   @unique
+  name              String
+  price             Float
+  description       String
+  footnote          String?
+  exampleImagesJson String   @default("[]")
+  briefType         String   @default("FORM_A")
+  active            Boolean  @default(true)
+  displayOrder      Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model QueueCounter {
+  id         Int    @id @default(1)
+  lastNumber Int    @default(0)
+  prefix     String @default("SN")
+}
+
+model Order {
+  id                Int                @id @default(autoincrement())
+  queueNumber       String             @unique
+  customerName      String
+  contactPlatform   String
+  contactId         String
+  inGameName        String
+  heroName          String
+  skinName          String
+  rank              String
+  skinLevel         String
+  badgeType         String
+  badgeValue        String
+  powerTrait        String?
+  additionalBrief   String?
+  briefType         String             @default("FORM_A")
+  formBDataJson     String?
+  itemsJson         String
+  totalPrice        Float
+  status            String             @default("รอชำระเงิน")
+  transferNote      String
+  slipUrl           String?
+  slipHash          String?            @unique
+  slipUploadedAt    DateTime?
+  slipApproved      Boolean            @default(false)
+  pointsAwarded     Boolean            @default(false)
+  customerId        Int?
+  customer          Customer?          @relation(fields: [customerId], references: [id])
+  pointTransactions PointTransaction[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model Customer {
+  id                Int                @id @default(autoincrement())
+  name              String
+  contactPlatform   String
+  contactId         String
+  pointsBalance     Int                @default(0)
+  hasApprovedReview Boolean            @default(false)
+  orders            Order[]
+  pointTransactions PointTransaction[]
+  reviews           Review[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@unique([name, contactPlatform, contactId])
+}
+
+model PointTransaction {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orderId    Int?
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  amount     Int
+  type       String   // "EARNED", "REDEEMED", "ADJUSTED"
+  reason     String
+  createdAt  DateTime @default(now())
+}
+
+model Review {
+  id              Int       @id @default(autoincrement())
+  customerId      Int?
+  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName    String
+  contactPlatform String?
+  contactId       String?
+  queueNumber     String?
+  rating          Int       @default(5)
+  comment         String
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt       DateTime  @default(now())
+  approvedAt      DateTime?
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  details   String
+  actor     String   @default("admin")
+  createdAt DateTime @default(now())
+}

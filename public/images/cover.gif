@@ -1,0 +1,27 @@
+<svg width="1200" height="450" viewBox="0 0 1200 450" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="coverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe4e6" />
+      <stop offset="35%" stop-color="#fecdd3" />
+      <stop offset="70%" stop-color="#fda4af" />
+      <stop offset="100%" stop-color="#f472b6" />
+    </linearGradient>
+    <pattern id="heartPattern" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M30,25 C30,18 22,12 15,18 C8,25 20,35 30,42 C40,35 52,25 45,18 C38,12 30,18 30,25 Z" fill="#ffffff" opacity="0.18" />
+    </pattern>
+  </defs>
+  <rect width="1200" height="450" fill="url(#coverGrad)" />
+  <rect width="1200" height="450" fill="url(#heartPattern)" />
+  
+  <g transform="translate(600, 210)" text-anchor="middle">
+    <!-- Glow effect behind text -->
+    <text x="0" y="0" font-family="'Prompt', sans-serif" font-size="64" font-weight="900" fill="#ffffff" opacity="0.9" letter-spacing="4">SHERNICE ROV CUT</text>
+    <text x="0" y="50" font-family="'Prompt', sans-serif" font-size="24" font-weight="500" fill="#881337" opacity="0.85">บริการตัดรูป ROV คมชัดระดับพรีเมียม สวย เป๊ะ รวดเร็ว 💖</text>
+  </g>
+  
+  <!-- Floating decorative stars and sparkles -->
+  <circle cx="150" cy="100" r="12" fill="#fff" opacity="0.7" />
+  <circle cx="1050" cy="120" r="16" fill="#fff" opacity="0.7" />
+  <circle cx="950" cy="320" r="20" fill="#fff" opacity="0.5" />
+  <circle cx="250" cy="340" r="15" fill="#fff" opacity="0.5" />
+</svg>

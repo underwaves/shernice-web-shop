@@ -1,0 +1,65 @@
+<svg width="400" height="520" viewBox="0 0 400 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ppGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#003d6b" />
+      <stop offset="100%" stop-color="#001d36" />
+    </linearGradient>
+  </defs>
+  <!-- Card Background -->
+  <rect width="400" height="520" rx="24" fill="#ffffff" stroke="#e2e8f0" stroke-width="2" />
+  
+  <!-- Header Bar -->
+  <rect width="400" height="90" rx="24" fill="url(#ppGrad)" />
+  <rect y="70" width="400" height="20" fill="url(#ppGrad)" />
+  
+  <text x="200" y="45" font-family="'Prompt', sans-serif" font-size="20" font-weight="bold" fill="#ffffff" text-anchor="middle">พร้อมเพย์ PromptPay</text>
+  <text x="200" y="70" font-family="'Prompt', sans-serif" font-size="13" fill="#cbd5e1" text-anchor="middle">สแกน QR เพื่อชำระเงิน</text>
+  
+  <!-- QR Box with Frame -->
+  <rect x="50" y="115" width="300" height="300" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" />
+  
+  <!-- Simulated QR Pattern -->
+  <g fill="#0f172a">
+    <!-- Top-Left Target -->
+    <rect x="75" y="140" width="60" height="60" rx="6" />
+    <rect x="85" y="150" width="40" height="40" rx="4" fill="#f8fafc" />
+    <rect x="95" y="160" width="20" height="20" rx="2" />
+    
+    <!-- Top-Right Target -->
+    <rect x="265" y="140" width="60" height="60" rx="6" />
+    <rect x="275" y="150" width="40" height="40" rx="4" fill="#f8fafc" />
+    <rect x="285" y="160" width="20" height="20" rx="2" />
+
+    <!-- Bottom-Left Target -->
+    <rect x="75" y="330" width="60" height="60" rx="6" />
+    <rect x="85" y="340" width="40" height="40" rx="4" fill="#f8fafc" />
+    <rect x="95" y="350" width="20" height="20" rx="2" />
+    
+    <!-- QR Data Matrix Dots -->
+    <rect x="155" y="140" width="20" height="20" rx="2" />
+    <rect x="195" y="140" width="20" height="20" rx="2" />
+    <rect x="175" y="170" width="20" height="20" rx="2" />
+    <rect x="215" y="170" width="20" height="20" rx="2" />
+    <rect x="155" y="200" width="30" height="20" rx="2" />
+    <rect x="215" y="200" width="30" height="20" rx="2" />
+    <rect x="155" y="240" width="20" height="30" rx="2" />
+    <rect x="195" y="240" width="40" height="20" rx="2" />
+    <rect x="255" y="240" width="20" height="30" rx="2" />
+    <rect x="155" y="290" width="30" height="20" rx="2" />
+    <rect x="205" y="280" width="30" height="30" rx="2" />
+    <rect x="255" y="290" width="30" height="20" rx="2" />
+    <rect x="155" y="330" width="20" height="40" rx="2" />
+    <rect x="195" y="340" width="40" height="20" rx="2" />
+    <rect x="255" y="330" width="40" height="20" rx="2" />
+    <rect x="275" y="360" width="20" height="20" rx="2" />
+  </g>
+
+  <!-- Center Icon -->
+  <circle cx="200" cy="265" r="22" fill="#003d6b" stroke="#ffffff" stroke-width="3" />
+  <text x="200" y="271" font-family="sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">PP</text>
+
+  <!-- Account info footer -->
+  <rect x="30" y="435" width="340" height="65" rx="14" fill="#f1f5f9" />
+  <text x="200" y="460" font-family="'Prompt', sans-serif" font-size="14" font-weight="bold" fill="#0f172a" text-anchor="middle">ชื่อบัญชี: น.ส.ปิ่นจุฑา ฟุ้งสกุล</text>
+  <text x="200" y="483" font-family="'Prompt', sans-serif" font-size="12" fill="#64748b" text-anchor="middle">QR นี้ล็อคยอดไว้อยู่แล้ว บันทึกรูปแล้วสแกนจ่ายได้เลยค่ะ</text>
+</svg>
