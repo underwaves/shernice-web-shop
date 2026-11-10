@@ -19,7 +19,11 @@ export async function GET(request: Request) {
           take: 50,
         });
 
-    return NextResponse.json(reviews);
+    return NextResponse.json(reviews, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      },
+    });
   } catch (error) {
     console.error('Error fetching reviews:', error);
     return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
@@ -52,6 +56,23 @@ export async function POST(request: Request) {
     });
     if (!order) {
       return NextResponse.json({ error: 'ข้อมูลคิว ชื่อลูกค้า หรือช่องทางติดต่อไม่ตรงกัน' }, { status: 404 });
+    }
+
+    // Check if review for this queue already exists (1 review per queue)
+    const existingReview = await prisma.review.findFirst({
+      where: { queueNumber },
+    });
+    if (existingReview) {
+      if (existingReview.status === 'APPROVED') {
+        return NextResponse.json(
+          { error: `คิว ${queueNumber} ได้รับการอนุมัติรีวิวแล้วค่ะ (1 คิวสามารถส่งรีวิวได้ 1 ครั้ง)` },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: `คิว ${queueNumber} ได้ส่งรีวิวไปแล้วค่ะ (อยู่ระหว่างรอแอดมินตรวจสอบอนุมัติ)` },
+        { status: 400 }
+      );
     }
 
     const rating = Math.min(5, Math.max(1, parseInt(body.rating, 10) || 5));

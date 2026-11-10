@@ -118,6 +118,16 @@ export async function POST(request: Request) {
         })
       : null;
 
+    const pendingReview = reviewConditions.length > 0
+      ? await prisma.review.findFirst({
+          where: {
+            status: 'PENDING',
+            OR: reviewConditions,
+          },
+          select: { id: true },
+        })
+      : null;
+
     // Build order conditions cleanly without empty objects
     const orderConditions: any[] = [];
     if (isQueuePattern && matchingOrder) {
@@ -191,6 +201,7 @@ export async function POST(request: Request) {
       customer: sanitizedCustomer,
       customerOrders: sanitizedOrders,
       hasApprovedReview: Boolean(approvedReview),
+      hasPendingReview: Boolean(pendingReview),
       earnedHistory,
       redeemedHistory,
       allTransactions,

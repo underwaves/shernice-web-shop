@@ -147,7 +147,10 @@ export default function AdminPage() {
 
   const loadReviews = async () => {
     try {
-      const res = await fetch('/api/reviews?all=true');
+      const res = await fetch(`/api/reviews?all=true&t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       const data = await res.json();
       if (Array.isArray(data)) setReviews(data);
     } catch {}
@@ -221,6 +224,12 @@ export default function AdminPage() {
 
   // Review status
   const handleUpdateReviewStatus = async (id: number, status: 'APPROVED' | 'REJECTED') => {
+    // Optimistic UI update
+    setReviews((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, status, approvedAt: status === 'APPROVED' ? new Date().toISOString() : null } : r
+      )
+    );
     try {
       const res = await fetch(`/api/reviews/${id}/status`, {
         method: 'PUT',
@@ -231,9 +240,31 @@ export default function AdminPage() {
         showNotice(status === 'APPROVED' ? 'อนุมัติรีวิวสำเร็จ (มอบแต้มสะสมให้อัตโนมัติ)' : 'ปฏิเสธรีวิวสำเร็จ');
         loadReviews();
         loadCustomers();
+      } else {
+        showNotice('ไม่สามารถอัปเดตรีวิวได้', 'error');
+        loadReviews();
       }
     } catch {
       showNotice('เกิดข้อผิดพลาดในการอัปเดตรีวิว', 'error');
+      loadReviews();
+    }
+  };
+
+  const handleDeleteReview = async (id: number, customerName: string) => {
+    if (!confirm(`คุณต้องการลบรีวิวของคุณ "${customerName}" ใช่หรือไม่?`)) return;
+    setReviews((prev) => prev.filter((r) => r.id !== id));
+    try {
+      const res = await fetch(`/api/reviews/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showNotice('ลบรีวิวเรียบร้อยแล้ว');
+        loadReviews();
+      } else {
+        showNotice('ไม่สามารถลบรีวิวได้', 'error');
+        loadReviews();
+      }
+    } catch {
+      showNotice('เกิดข้อผิดพลาดในการลบรีวิว', 'error');
+      loadReviews();
     }
   };
 
@@ -1319,26 +1350,38 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-rose-50 flex gap-2 justify-end">
-                  {rev.status !== 'APPROVED' && (
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateReviewStatus(rev.id, 'APPROVED')}
-                      className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs font-thai flex items-center gap-1 shadow-sm"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      <span>อนุมัติรีวิว</span>
-                    </button>
-                  )}
-                  {rev.status !== 'REJECTED' && (
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateReviewStatus(rev.id, 'REJECTED')}
-                      className="px-3.5 py-1.5 rounded-xl bg-gray-100 hover:bg-rose-100 text-gray-600 hover:text-rose-600 font-bold text-xs font-thai"
-                    >
-                      <span>ปฏิเสธ</span>
-                    </button>
-                  )}
+                <div className="pt-3 border-t border-rose-50 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteReview(rev.id, rev.customerName)}
+                    className="p-1.5 px-2 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-1 text-xs font-thai"
+                    title="ลบรีวิว"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>ลบ</span>
+                  </button>
+
+                  <div className="flex gap-2">
+                    {rev.status !== 'APPROVED' && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateReviewStatus(rev.id, 'APPROVED')}
+                        className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs font-thai flex items-center gap-1 shadow-sm"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>อนุมัติรีวิว</span>
+                      </button>
+                    )}
+                    {rev.status !== 'REJECTED' && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateReviewStatus(rev.id, 'REJECTED')}
+                        className="px-3.5 py-1.5 rounded-xl bg-gray-100 hover:bg-rose-100 text-gray-600 hover:text-rose-600 font-bold text-xs font-thai"
+                      >
+                        <span>ปฏิเสธ</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

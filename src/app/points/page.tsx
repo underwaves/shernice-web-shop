@@ -120,6 +120,8 @@ function PointsContent() {
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
       setReviewComment('');
       setShowReviewForm(false);
+      // Automatically refresh customer points and review status
+      lookupPoints(searchInput.trim(), verificationContact.trim());
     } catch (err: any) {
       setReviewError(err.message || 'ไม่สามารถส่งรีวิวได้');
     } finally {
@@ -367,28 +369,44 @@ function PointsContent() {
 
           {/* Prompt to leave a review if not reviewed */}
           {!data.hasApprovedReview && (
-            <div className="p-4 rounded-3xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-thai">
-              <div className="flex items-start gap-2.5">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div className="space-y-2 flex-1">
-                  <p className="font-semibold">
-                    คุณยังไม่ได้รับสิทธิ์แต้มสะสม เนื่องจากยังไม่มีรีวิวที่ผ่านการอนุมัติ
-                  </p>
-                  <p className="text-xs text-amber-800">
-                    เพียงเขียนรีวิวความประทับใจให้กับร้าน เมื่อแอดมินอนุมัติรีวิว
-                    แต้มจากทุกสลิปที่คุณโอนจะถูกเพิ่มเข้าบัญชีของคุณทันทีค่ะ!
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowReviewForm(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm active:scale-95 transition-all"
-                  >
-                    <MessageSquareHeart className="w-4 h-4" />
-                    <span>เขียนรีวิวให้ทางร้านตอนนี้เลย ✨</span>
-                  </button>
+            data.hasPendingReview ? (
+              <div className="p-4 rounded-3xl bg-blue-50 border border-blue-200 text-blue-900 text-xs sm:text-sm font-thai">
+                <div className="flex items-start gap-2.5">
+                  <Clock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1 flex-1">
+                    <p className="font-semibold text-blue-900">
+                      คุณได้ส่งรีวิวเรียบร้อยแล้ว (รอแอดมินอนุมัติ) 💖
+                    </p>
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      รีวิวของคุณอยู่ระหว่างรอแอดมินตรวจสอบ เมื่อผ่านการอนุมัติแล้ว แต้มสะสมจากทุกสลิปจะถูกเพิ่มเข้าบัญชีของคุณทันทีค่ะ!
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-4 rounded-3xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-thai">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-2 flex-1">
+                    <p className="font-semibold">
+                      คุณยังไม่ได้รับสิทธิ์แต้มสะสม เนื่องจากยังไม่มีรีวิวที่ผ่านการอนุมัติ
+                    </p>
+                    <p className="text-xs text-amber-800">
+                      เพียงเขียนรีวิวความประทับใจให้กับร้าน เมื่อแอดมินอนุมัติรีวิว
+                      แต้มจากทุกสลิปที่คุณโอนจะถูกเพิ่มเข้าบัญชีของคุณทันทีค่ะ!
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowReviewForm(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm active:scale-95 transition-all"
+                    >
+                      <MessageSquareHeart className="w-4 h-4" />
+                      <span>เขียนรีวิวให้ทางร้านตอนนี้เลย ✨</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
           )}
 
           {/* Rewards List */}
