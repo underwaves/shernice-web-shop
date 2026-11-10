@@ -57,6 +57,8 @@ export default function AdminPage() {
   // Products State
   const [products, setProducts] = useState<any[]>([]);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [uploadingProductImages, setUploadingProductImages] = useState(false);
+  const [customProductImageUrl, setCustomProductImageUrl] = useState('');
 
   // Customers State
   const [customers, setCustomers] = useState<any[]>([]);
@@ -233,6 +235,91 @@ export default function AdminPage() {
     } catch {
       showNotice('เกิดข้อผิดพลาดในการอัปเดตรีวิว', 'error');
     }
+  };
+
+  // Product Image Upload & Management
+  const handleAddProductImageFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    let currentImages: string[] = [];
+    try {
+      const parsed = JSON.parse(editingProduct?.exampleImagesJson || '[]');
+      if (Array.isArray(parsed)) currentImages = parsed;
+    } catch {
+      currentImages = [];
+    }
+
+    setUploadingProductImages(true);
+    try {
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', 'products');
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok && data.url) {
+          newUrls.push(data.url);
+        } else {
+          showNotice(data.error || 'อัปโหลดบางรูปไม่สำเร็จ', 'error');
+        }
+      }
+
+      if (newUrls.length > 0) {
+        const updated = [...currentImages, ...newUrls];
+        setEditingProduct({
+          ...editingProduct,
+          exampleImagesJson: JSON.stringify(updated),
+        });
+        showNotice(`เพิ่มรูปภาพสำเร็จ ${newUrls.length} รูป`);
+      }
+    } catch {
+      showNotice('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ', 'error');
+    } finally {
+      setUploadingProductImages(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveProductImage = (indexToRemove: number) => {
+    let currentImages: string[] = [];
+    try {
+      const parsed = JSON.parse(editingProduct?.exampleImagesJson || '[]');
+      if (Array.isArray(parsed)) currentImages = parsed;
+    } catch {
+      currentImages = [];
+    }
+
+    const updated = currentImages.filter((_, idx) => idx !== indexToRemove);
+    setEditingProduct({
+      ...editingProduct,
+      exampleImagesJson: JSON.stringify(updated),
+    });
+  };
+
+  const handleAddCustomProductImageUrl = () => {
+    if (!customProductImageUrl.trim()) return;
+    let currentImages: string[] = [];
+    try {
+      const parsed = JSON.parse(editingProduct?.exampleImagesJson || '[]');
+      if (Array.isArray(parsed)) currentImages = parsed;
+    } catch {
+      currentImages = [];
+    }
+
+    const updated = [...currentImages, customProductImageUrl.trim()];
+    setEditingProduct({
+      ...editingProduct,
+      exampleImagesJson: JSON.stringify(updated),
+    });
+    setCustomProductImageUrl('');
+    showNotice('เพิ่มลิงก์รูปภาพสำเร็จ');
   };
 
   // Product actions
@@ -872,14 +959,113 @@ export default function AdminPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-gray-700 font-bold mb-1">รูปตัวอย่าง (JSON Array ของ URL)</label>
-                    <textarea
-                      rows={2}
-                      value={editingProduct.exampleImagesJson || '[]'}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, exampleImagesJson: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-rose-100 font-mono text-xs"
-                    />
+                  {/* Product Images Manager */}
+                  <div className="space-y-2 pt-1 border-t border-rose-100">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-gray-700 font-bold">
+                        รูปภาพตัวอย่างผลงาน
+                      </label>
+                      <span className="text-xs text-rose-500 font-medium">
+                        {(() => {
+                          try {
+                            const arr = JSON.parse(editingProduct.exampleImagesJson || '[]');
+                            return `${Array.isArray(arr) ? arr.length : 0} รูป`;
+                          } catch {
+                            return '0 รูป';
+                          }
+                        })()}
+                      </span>
+                    </div>
+
+                    {/* Image Previews Grid */}
+                    {(() => {
+                      let images: string[] = [];
+                      try {
+                        const parsed = JSON.parse(editingProduct.exampleImagesJson || '[]');
+                        if (Array.isArray(parsed)) images = parsed;
+                      } catch {
+                        images = [];
+                      }
+
+                      return (
+                        <div className="space-y-2.5">
+                          {images.length > 0 ? (
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 p-2.5 bg-rose-50/40 rounded-2xl border border-rose-100 max-h-48 overflow-y-auto">
+                              {images.map((imgUrl, idx) => (
+                                <div
+                                  key={idx}
+                                  className="relative group rounded-xl overflow-hidden border border-rose-200 bg-white aspect-square shadow-sm flex items-center justify-center"
+                                >
+                                  <img
+                                    src={imgUrl}
+                                    alt={`Product sample ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <span className="absolute bottom-1 left-1 bg-black/60 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded font-mono">
+                                    #{idx + 1}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveProductImage(idx)}
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-md transition-transform hover:scale-110"
+                                    title="ลบรูปนี้"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-2xl text-center text-xs text-gray-400">
+                              ยังไม่มีรูปภาพตัวอย่าง กรุณากดปุ่ม &ldquo;เลือกรูปภาพจากเครื่อง&rdquo; ด้านล่าง
+                            </div>
+                          )}
+
+                          {/* Upload from device button */}
+                          <label className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold cursor-pointer transition-colors text-xs ${uploadingProductImages ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                            <Upload className="w-4 h-4" />
+                            <span>
+                              {uploadingProductImages
+                                ? 'กำลังอัปโหลดรูปภาพขึ้นคลาวด์...'
+                                : '+ เลือกรูปภาพจากเครื่อง (เลือกได้หลายรูป)'}
+                            </span>
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/png,image/jpeg,image/webp,image/gif"
+                              disabled={uploadingProductImages}
+                              onChange={handleAddProductImageFiles}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {/* Or Add via URL */}
+                          <div className="flex gap-2">
+                            <input
+                              type="url"
+                              value={customProductImageUrl}
+                              onChange={(e) => setCustomProductImageUrl(e.target.value)}
+                              placeholder="หรือวางลิงก์รูปภาพ https://..."
+                              className="flex-1 px-3 py-1.5 rounded-xl border border-rose-100 bg-white text-xs"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddCustomProductImageUrl();
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddCustomProductImageUrl}
+                              disabled={!customProductImageUrl.trim()}
+                              className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-rose-100 text-gray-700 hover:text-rose-600 font-bold text-xs disabled:opacity-40 transition-colors"
+                            >
+                              + เพิ่มลิงก์
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex gap-2 pt-2">
