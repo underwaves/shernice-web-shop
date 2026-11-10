@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.16",
+    "@prisma/adapter-pg": "^5.22.0",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
     "canvas-confetti": "^1.9.4",
