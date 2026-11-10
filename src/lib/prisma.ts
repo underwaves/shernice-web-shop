@@ -4,36 +4,58 @@ import { Pool } from 'pg';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const requestClientMap = new WeakMap<object, PrismaClient>();
 
-let cachedClient: PrismaClient | null = null;
+function sanitizeUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    parsed.searchParams.delete('sslmode');
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
 
 function getPrismaClient(): PrismaClient {
-  if (cachedClient) {
-    return cachedClient;
-  }
-
   // 1. Check Cloudflare context (Hyperdrive)
   try {
     const cf = getCloudflareContext();
     const hyperdrive = (cf?.env as any)?.HYPERDRIVE;
     if (hyperdrive?.connectionString) {
-      console.log('Connecting to database via Cloudflare Hyperdrive...');
+      const ctxObj = (cf?.ctx as object) || (cf as object);
+      if (ctxObj && requestClientMap.has(ctxObj)) {
+        return requestClientMap.get(ctxObj)!;
+      }
+
+      const isLocal = hyperdrive.connectionString.includes('pooler.supabase.com');
+      const connectionString = isLocal
+        ? sanitizeUrl(hyperdrive.connectionString)
+        : hyperdrive.connectionString;
+
       const pool = new Pool({
-        connectionString: hyperdrive.connectionString,
-        max: 5,
+        connectionString,
+        ...(isLocal ? { ssl: { rejectUnauthorized: false } } : {}),
+        max: 2,
       });
+
       pool.on('error', (err) => {
         console.error('Hyperdrive pool error:', err.message);
       });
+
       const adapter = new PrismaPg(pool);
-      cachedClient = new PrismaClient({ adapter, log: ['error', 'warn'] });
-      return cachedClient;
+      const client = new PrismaClient({ adapter, log: ['error', 'warn'] });
+
+      if (ctxObj) {
+        requestClientMap.set(ctxObj, client);
+      }
+
+      return client;
     }
   } catch (err: any) {
     // Cloudflare context unavailable (e.g. running in Node.js, Next build, or seed)
   }
 
-  // 2. Fallback to process.env.DATABASE_URL
+  // 2. Fallback to process.env.DATABASE_URL (Local Node.js)
   if (globalForPrisma.prisma) {
     return globalForPrisma.prisma;
   }
@@ -44,7 +66,7 @@ function getPrismaClient(): PrismaClient {
   }
 
   const pool = new Pool({
-    connectionString,
+    connectionString: sanitizeUrl(connectionString),
     ssl: { rejectUnauthorized: false },
     max: 5,
     connectionTimeoutMillis: 10000,
@@ -58,8 +80,6 @@ function getPrismaClient(): PrismaClient {
 
   if (process.env.NODE_ENV !== 'production') {
     globalForPrisma.prisma = client;
-  } else {
-    cachedClient = client;
   }
 
   return client;
