@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shernice-web-shop",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2024-12-30",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "DATABASE_URL": "postgresql://postgres.[REF]:[PASSWORD]@aws-1-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true",
+    "DIRECT_URL": "postgresql://postgres.[REF]:[PASSWORD]@aws-1-[REGION].pooler.supabase.com:5432/postgres",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://[REF].supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_...",
+    "SUPABASE_SERVICE_ROLE_KEY": "sb_secret_...",
+    "ADMIN_INITIAL_CODE": "2247",
+    "JWT_SECRET": "shernice-rov-shop-secret-key-2025"
+  }
+}

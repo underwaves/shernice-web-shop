@@ -8,6 +8,8 @@
 
 # next.js
 /.next/
+/.open-next/
+/.wrangler/
 /out/
 
 # production
@@ -25,6 +27,7 @@ yarn-error.log*
 # local env files
 .env
 .env*.local
+wrangler.jsonc
 
 # SQLite database
 *.db
