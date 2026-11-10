@@ -1536,7 +1536,7 @@ export default function AdminPage() {
               เปลี่ยนรหัสผ่านเข้าหลังบ้าน
             </h2>
             <p className="text-xs text-gray-400 font-thai">
-              รหัสเริ่มต้นคือ 2247 (ถูกเข้ารหัสแบบ Bcrypt ไม่ได้เก็บเป็น Plaintext)
+              รหัสผ่านผู้ดูแลถูกเข้ารหัสด้วย Bcrypt
             </p>
           </div>
 
@@ -1548,7 +1548,7 @@ export default function AdminPage() {
 
           <form onSubmit={handleChangeCode} className="space-y-4 font-thai text-xs sm:text-sm">
             <div>
-              <label className="block text-gray-700 font-bold mb-1">รหัสผ่านใหม่ (อย่างน้อย 4 หลัก)</label>
+              <label className="block text-gray-700 font-bold mb-1">รหัสผ่านใหม่ (อย่างน้อย 12 ตัวอักษร)</label>
               <input
                 type="password"
                 required

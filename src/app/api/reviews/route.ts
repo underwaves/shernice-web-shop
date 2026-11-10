@@ -10,11 +10,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const all = searchParams.get('all') === 'true' && isAdmin;
 
-    const reviews = await prisma.review.findMany({
-      where: all ? {} : { status: 'APPROVED' },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
+    const reviews = all
+      ? await prisma.review.findMany({ where: {}, orderBy: { createdAt: 'desc' }, take: 50 })
+      : await prisma.review.findMany({
+          where: { status: 'APPROVED' },
+          select: { id: true, customerName: true, rating: true, comment: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        });
 
     return NextResponse.json(reviews);
   } catch (error) {
@@ -31,15 +34,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'กรุณากรอกชื่อและข้อความรีวิว' }, { status: 400 });
     }
 
+    const queueNumber = typeof body.queueNumber === 'string' ? body.queueNumber.trim().toUpperCase() : '';
+    const contactId = typeof body.contactId === 'string' ? body.contactId.trim() : '';
+    const contactPlatform = typeof body.contactPlatform === 'string' ? body.contactPlatform.trim() : '';
+    if (!/^SN\d+$/.test(queueNumber) || !contactId || !['Line', 'Facebook', 'Instagram', 'Discord'].includes(contactPlatform)) {
+      return NextResponse.json({ error: 'กรุณายืนยันคิวและช่องทางติดต่อก่อนส่งรีวิว' }, { status: 400 });
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        queueNumber,
+        customerName: body.customerName.trim(),
+        contactPlatform,
+        contactId,
+      },
+      include: { customer: true },
+    });
+    if (!order) {
+      return NextResponse.json({ error: 'ข้อมูลคิว ชื่อลูกค้า หรือช่องทางติดต่อไม่ตรงกัน' }, { status: 404 });
+    }
+
     const rating = Math.min(5, Math.max(1, parseInt(body.rating, 10) || 5));
 
     // Try finding customer
-    const customer = await prisma.customer.findFirst({
+    const customer = order.customer || await prisma.customer.findFirst({
       where: {
-        OR: [
-          { name: body.customerName.trim() },
-          body.contactId ? { contactId: body.contactId.trim() } : {},
-        ],
+        name: body.customerName.trim(),
+        contactPlatform,
+        contactId,
       },
     });
 
@@ -47,9 +69,9 @@ export async function POST(request: Request) {
       data: {
         customerId: customer?.id || null,
         customerName: body.customerName.trim(),
-        contactPlatform: body.contactPlatform || 'Line',
-        contactId: body.contactId?.trim() || '',
-        queueNumber: body.queueNumber?.trim() || '',
+        contactPlatform,
+        contactId,
+        queueNumber,
         rating,
         comment: body.comment.trim(),
         status: 'PENDING',

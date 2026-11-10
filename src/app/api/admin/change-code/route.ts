@@ -10,8 +10,8 @@ export async function POST(request: Request) {
 
   try {
     const { newCode } = await request.json();
-    if (!newCode || String(newCode).length < 4) {
-      return NextResponse.json({ error: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' }, { status: 400 });
+    if (!newCode || String(newCode).length < 12) {
+      return NextResponse.json({ error: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 12 ตัวอักษร' }, { status: 400 });
     }
 
     await setAdminPassword(String(newCode));

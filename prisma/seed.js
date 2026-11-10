@@ -18,7 +18,11 @@ async function main() {
   });
 
   // 2. Settings
-  const initialPasswordHash = bcrypt.hashSync(process.env.ADMIN_INITIAL_CODE || '2247', 10);
+  const initialCode = process.env.ADMIN_INITIAL_CODE;
+  if (!initialCode || initialCode.length < 12 || /choose-a|replace|default/i.test(initialCode)) {
+    throw new Error('Set a unique ADMIN_INITIAL_CODE (at least 12 characters) in .env before seeding.');
+  }
+  const initialPasswordHash = bcrypt.hashSync(initialCode, 10);
   await prisma.setting.upsert({
     where: { id: 1 },
     update: {},

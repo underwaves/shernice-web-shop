@@ -77,18 +77,52 @@ export async function POST(request: Request) {
       }
     }
 
-    // Atomic Queue generation: continuous forever, unique even under deletion, concurrency safe
+    // Calculate total price from selected items
+    const requestedItems = Array.isArray(body.items) ? body.items : [];
+    if (requestedItems.length > 0) {
+      const codes: string[] = Array.from(new Set<string>(requestedItems.map((item: any) => String(item?.code || ''))));
+      const products = await prisma.product.findMany({
+        where: { code: { in: codes }, active: true },
+      });
+      const productsByCode = new Map(products.map((product) => [product.code, product]));
+
+      if (productsByCode.size !== codes.length) {
+        return NextResponse.json({ error: 'มีสินค้าที่ไม่พร้อมให้บริการ กรุณาโหลดหน้าเว็บใหม่' }, { status: 400 });
+      }
+
+      for (const item of requestedItems) {
+        const quantity = Number(item?.quantity ?? 1);
+        if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+          return NextResponse.json({ error: 'จำนวนสินค้าไม่ถูกต้อง' }, { status: 400 });
+        }
+      }
+
+      const items = requestedItems.map((item: any) => {
+        const product = productsByCode.get(String(item.code))!;
+        return {
+          code: product.code,
+          name: product.name,
+          price: product.price,
+          quantity: Number(item.quantity ?? 1),
+        };
+      });
+      const totalPrice = items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+
+      return await createOrder(body, briefType, items, totalPrice);
+    }
+
+    return await createOrder(body, briefType, [], 0);
+  } catch (error) {
+    console.error('Error creating order:', error);
+    return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการสร้างออเดอร์ กรุณาลองใหม่อีกครั้ง' }, { status: 500 });
+  }
+}
+
+async function createOrder(body: any, briefType: string, items: any[], totalPrice: number) {
+  try {
+    // Only allocate a queue after validating the product list and authoritative prices.
     const queueNumber = await getNextQueueNumber();
     const transferNote = `${queueNumber} ${body.customerName?.trim() || 'ลูกค้า'}`;
-
-    // Calculate total price from selected items
-    const items = Array.isArray(body.items) ? body.items : [];
-    let totalPrice = 0;
-    if (items.length > 0) {
-      totalPrice = items.reduce((sum: number, item: any) => sum + (parseFloat(item.price) || 0) * (item.quantity || 1), 0);
-    } else if (body.totalPrice) {
-      totalPrice = parseFloat(body.totalPrice);
-    }
 
     // Create or find customer
     let customerId: number | undefined;
@@ -142,6 +176,7 @@ export async function POST(request: Request) {
       order,
       queueNumber,
       transferNote,
+      totalPrice,
     });
   } catch (error) {
     console.error('Error creating order:', error);

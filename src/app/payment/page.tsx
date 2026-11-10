@@ -47,6 +47,7 @@ function PaymentContent() {
     if (!qNum.trim()) return;
     setLoading(true);
     setFetchError('');
+    setSlipPreview(null);
     try {
       const res = await fetch(`/api/orders/${encodeURIComponent(qNum.trim())}`);
       const data = await res.json();
@@ -54,9 +55,7 @@ function PaymentContent() {
         throw new Error(data.error || 'ไม่พบข้อมูลคิวนี้');
       }
       setOrder(data);
-      if (data.slipUrl) {
-        setSlipPreview(data.slipUrl);
-      }
+      if (!data.hasSlip) setSlipPreview(null);
     } catch (e: any) {
       setFetchError(e.message || 'ไม่สามารถดึงข้อมูลคิวได้');
       setOrder(null);
@@ -180,10 +179,7 @@ function PaymentContent() {
               <span className="text-gray-500">ชื่อลูกค้า:</span>
               <span className="font-semibold text-gray-800">{order.customerName}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">ฮีโร่ / สกิน:</span>
-              <span className="text-gray-700">{order.heroName} - {order.skinName}</span>
-            </div>
+            {order.hasSlip && <p className="text-xs text-emerald-700">แนบสลิปแล้ว รอร้านตรวจสอบ</p>}
             <div className="flex justify-between items-center pt-2 border-t border-rose-200">
               <span className="text-gray-700 font-bold">ยอดที่ต้องชำระ:</span>
               <span className="text-lg font-extrabold text-rose-600">{order.totalPrice} บาท</span>

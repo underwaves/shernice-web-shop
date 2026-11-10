@@ -13,11 +13,17 @@ export async function GET(
         OR: [
           { queueNumber: { equals: rawParam } },
           { queueNumber: { equals: rawParam.toUpperCase() } },
-          { id: !isNaN(Number(rawParam)) ? Number(rawParam) : undefined },
+          ...(!isNaN(Number(rawParam)) ? [{ id: Number(rawParam) }] : []),
         ],
       },
-      include: {
-        customer: true,
+      select: {
+        queueNumber: true,
+        customerName: true,
+        status: true,
+        totalPrice: true,
+        transferNote: true,
+        slipApproved: true,
+        slipUrl: true,
       },
     });
 
@@ -25,7 +31,10 @@ export async function GET(
       return NextResponse.json({ error: 'ไม่พบคิวที่ระบุ' }, { status: 404 });
     }
 
-    return NextResponse.json(order);
+    // This endpoint is public because customers use it to check queues and pay.
+    // Return only the fields those screens need; never expose contacts, briefs, or slip files.
+    const { slipUrl, ...safeOrder } = order;
+    return NextResponse.json({ ...safeOrder, hasSlip: Boolean(order.slipUrl) });
   } catch (error) {
     console.error('Error fetching order by queueNumber:', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการค้นหาข้อมูล' }, { status: 500 });

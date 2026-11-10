@@ -56,16 +56,23 @@ async function main() {
     try { fs.unlinkSync(journalFile); } catch {}
   }
 
-  // 3. Push schema to isolated test DB
-  console.log('\n[Setup] Pushing schema to isolated test DB...');
-  execSync('npx prisma db push --skip-generate --schema=prisma/schema.prisma', {
-    cwd: rootDir,
-    stdio: 'pipe',
-    env: {
-      ...process.env,
-      DATABASE_URL: testDbUrl,
-    },
-  });
+  // 3. Use a byte-for-byte copy of the already initialized local database when
+  // available. This avoids requiring Prisma's schema engine just to create a
+  // disposable test database, and all test writes remain isolated from prod.
+  if (fs.existsSync(prodDbPath)) {
+    fs.copyFileSync(prodDbPath, testDbFile);
+    console.log('\n[Setup] Copied the local database into the isolated test database.');
+  } else {
+    console.log('\n[Setup] Pushing schema to isolated test DB...');
+    execSync('npx prisma db push --skip-generate --schema=prisma/schema.prisma', {
+      cwd: rootDir,
+      stdio: 'pipe',
+      env: {
+        ...process.env,
+        DATABASE_URL: testDbUrl,
+      },
+    });
+  }
   assert(fs.existsSync(testDbFile), 'Isolated test database file created successfully');
 
   // 4. Connect Prisma to isolated test DB
@@ -78,6 +85,17 @@ async function main() {
   });
 
   try {
+    await prisma.$transaction([
+      prisma.pointTransaction.deleteMany(),
+      prisma.review.deleteMany(),
+      prisma.order.deleteMany(),
+      prisma.customer.deleteMany(),
+      prisma.product.deleteMany(),
+      prisma.setting.deleteMany(),
+      prisma.queueCounter.deleteMany(),
+      prisma.auditLog.deleteMany(),
+    ]);
+
     // 5. Seed test DB with initial settings, counter, and products
     console.log('\n[Setup] Seeding isolated test database...');
     const adminPassHash = bcrypt.hashSync('2247', 10);
@@ -221,10 +239,10 @@ async function main() {
     console.log('\n--- SUITE 2: Points Lookup & Privacy Protection ---');
 
     // Simulate lookup handler logic with test DB
-    async function simulatePointsLookup(queryParam) {
+    async function simulatePointsLookup(queryParam, contactId = 'minnie_private_contact_123', contactPlatform = 'Line') {
       const query = queryParam?.trim();
-      if (!query) {
-        return { status: 400, data: { error: 'กรุณากรอกชื่อหรือเลขคิวเพื่อค้นหาแต้มสะสม' } };
+      if (!query || !contactId || !contactPlatform) {
+        return { status: 400, data: { error: 'กรุณากรอกชื่อหรือเลขคิว พร้อม ID ช่องทางติดต่อที่ใช้สั่งงาน' } };
       }
 
       const isQueuePattern = /^SN\d+$/i.test(query);
@@ -242,19 +260,20 @@ async function main() {
             },
           },
         });
+        if (matchingOrder?.contactId !== contactId || matchingOrder?.contactPlatform !== contactPlatform) matchingOrder = null;
         if (matchingOrder) {
           customer = matchingOrder.customer;
         }
       } else {
         customer = await prisma.customer.findFirst({
-          where: { name: { equals: query } },
+          where: { name: { equals: query }, contactId, contactPlatform },
           include: {
             pointTransactions: { orderBy: { createdAt: 'desc' } },
           },
         });
         if (!customer) {
           matchingOrder = await prisma.order.findFirst({
-            where: { customerName: { equals: query } },
+            where: { customerName: { equals: query }, contactId, contactPlatform },
             orderBy: { createdAt: 'desc' },
           });
         }
@@ -283,7 +302,6 @@ async function main() {
         const rawOrders = await prisma.order.findMany({
           where: { OR: orderConditions },
           select: {
-            id: true,
             queueNumber: true,
             heroName: true,
             skinName: true,
@@ -297,7 +315,6 @@ async function main() {
         });
 
         sanitizedOrders = rawOrders.map((ord) => ({
-          id: ord.id,
           queueNumber: ord.queueNumber,
           heroName: ord.heroName,
           skinName: ord.skinName,
@@ -317,7 +334,6 @@ async function main() {
       }));
 
       const sanitizedCustomer = {
-        id: customerId,
         name: customerName,
         pointsBalance: customer?.pointsBalance || 0,
       };
@@ -339,6 +355,8 @@ async function main() {
     // Test 2.1: Missing query parameter -> 400
     const resEmpty = await simulatePointsLookup('');
     assert(resEmpty.status === 400, 'Empty query returns 400 status');
+    const resMissingContact = await simulatePointsLookup('SN001', '');
+    assert(resMissingContact.status === 400, 'Points lookup requires the contact ID verification field');
 
     // Test 2.2: Non-existent queue -> 404
     const resNotFound = await simulatePointsLookup('SN999');
@@ -352,10 +370,16 @@ async function main() {
     const resQ1 = await simulatePointsLookup('SN001');
     assert(resQ1.status === 200, 'Queue SN001 lookup returns 200 status');
     assert(resQ1.data.customer.name === 'คุณมินนี่', 'Returns correct customer name');
+    assert(resQ1.data.customer.id === undefined, 'Privacy: internal customer ID is NOT exposed');
+    const resWrongContact = await simulatePointsLookup('SN001', 'wrong-contact');
+    assert(resWrongContact.status === 404, 'Wrong contact ID cannot retrieve points');
+    const resWrongPlatform = await simulatePointsLookup('SN001', 'minnie_private_contact_123', 'Facebook');
+    assert(resWrongPlatform.status === 404, 'Wrong contact platform cannot retrieve points');
     assert(resQ1.data.customer.contactId === undefined, 'Privacy: contactId is NOT exposed');
     assert(resQ1.data.customer.contactPlatform === undefined, 'Privacy: contactPlatform is NOT exposed');
     assert(resQ1.data.customerOrders.length === 1, 'Scope: Queue lookup strictly returns 1 order (SN001)');
     assert(resQ1.data.customerOrders[0].queueNumber === 'SN001', 'Scope: Order is SN001');
+    assert(resQ1.data.customerOrders[0].id === undefined, 'Privacy: internal order ID is NOT exposed');
     assert(resQ1.data.customerOrders[0].slipUrl === undefined, 'Privacy: slipUrl is NOT exposed');
     assert(resQ1.data.customerOrders[0].additionalBrief === undefined, 'Privacy: additionalBrief is NOT exposed');
     assert(resQ1.data.customerOrders[0].formBDataJson === undefined, 'Privacy: formBDataJson is NOT exposed');
@@ -415,8 +439,6 @@ async function main() {
             status: 'APPROVED',
             OR: [
               { customerId: customer.id },
-              { customerName: customer.name },
-              { contactId: customer.contactId },
               { queueNumber: order.queueNumber },
             ],
           },

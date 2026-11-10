@@ -92,7 +92,7 @@ export default function AdminLoginPage() {
         </form>
 
         <p className="text-[11px] text-gray-400 font-thai mt-6">
-          *รหัสเริ่มต้นจากระบบ: <span className="font-mono font-semibold">2247</span> (สามารถเปลี่ยนได้ในระบบหลังบ้าน)
+          *ใช้รหัสผ่านที่ผู้ดูแลกำหนดไว้สำหรับร้านนี้
         </p>
       </div>
     </div>

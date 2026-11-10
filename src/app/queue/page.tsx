@@ -144,60 +144,9 @@ function QueueContent() {
             <div>{getStatusBadge(order.status)}</div>
           </div>
 
-          {/* Customer & Game Info */}
-          <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm font-thai">
-            <div className="p-3 rounded-2xl bg-rose-50/40">
-              <span className="text-gray-400 block text-[11px]">ชื่อลูกค้า</span>
-              <span className="font-bold text-gray-800">{order.customerName}</span>
-            </div>
-            <div className="p-3 rounded-2xl bg-rose-50/40">
-              <span className="text-gray-400 block text-[11px]">ช่องทางติดต่อ ({order.contactPlatform})</span>
-              <span className="font-bold text-gray-800">{order.contactId}</span>
-            </div>
-            <div className="p-3 rounded-2xl bg-rose-50/40">
-              <span className="text-gray-400 block text-[11px]">ชื่อในเกมส์</span>
-              <span className="font-bold text-gray-800">{order.inGameName}</span>
-            </div>
-            <div className="p-3 rounded-2xl bg-rose-50/40">
-              <span className="text-gray-400 block text-[11px]">แรงค์</span>
-              <span className="font-bold text-gray-800">{order.rank}</span>
-            </div>
-          </div>
-
-          {/* Brief Details */}
-          <div className="p-4 rounded-2xl bg-pink-50/40 border border-pink-100 space-y-2 text-xs sm:text-sm font-thai">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">ฮีโร่ / Hero:</span>
-              <span className="font-bold text-gray-800">{order.heroName}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">สกิน / Skin:</span>
-              <span className="font-bold text-gray-800">{order.skinName}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">ระดับสกิน:</span>
-              <span className="font-semibold text-gray-700">สกิน{order.skinLevel}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">โล่ / เม็ด:</span>
-              <span className="font-semibold text-rose-600 bg-rose-100/60 px-2 py-0.5 rounded-lg">
-                {order.badgeValue}
-              </span>
-            </div>
-            {order.powerTrait && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500">พลังแฝง:</span>
-                <span className="text-gray-700">{order.powerTrait}</span>
-              </div>
-            )}
-            {order.additionalBrief && (
-              <div className="pt-2 border-t border-pink-100">
-                <span className="text-gray-500 block mb-1">บรีฟเพิ่มเติม:</span>
-                <p className="text-gray-700 bg-white p-2.5 rounded-xl border border-pink-100 text-xs">
-                  {order.additionalBrief}
-                </p>
-              </div>
-            )}
+          <div className="p-3 rounded-2xl bg-rose-50/40 text-xs sm:text-sm font-thai">
+            <span className="text-gray-400 block text-[11px]">ชื่อลูกค้า</span>
+            <span className="font-bold text-gray-800">{order.customerName}</span>
           </div>
 
           {/* Payment Status & Action */}
@@ -221,7 +170,7 @@ function QueueContent() {
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                 <span>ชำระเงินเรียบร้อยแล้ว ทางร้านกำลังดูแลงานให้อย่างดีค่ะ 💖</span>
               </div>
-            ) : order.slipUrl ? (
+            ) : order.hasSlip ? (
               <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs sm:text-sm font-thai flex items-center gap-2">
                 <Clock className="w-5 h-5 text-blue-600 shrink-0" />
                 <span>ส่งสลิปเรียบร้อยแล้ว รอแอดมินตรวจสอบความถูกต้องค่ะ</span>

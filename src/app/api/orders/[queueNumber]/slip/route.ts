@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { saveUploadedFile } from '@/lib/upload';
+import crypto from 'crypto';
 
 export async function POST(
   request: Request,
@@ -24,13 +25,23 @@ export async function POST(
       return NextResponse.json({ error: 'กรุณาแนบรูปภาพสลิปการโอนเงิน' }, { status: 400 });
     }
 
-    // Save and hash
-    const uploadResult = await saveUploadedFile(file, 'slips');
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ error: 'ประเภทไฟล์ไม่ถูกต้อง รองรับเฉพาะ JPG, PNG, WEBP, GIF' }, { status: 400 });
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'ขนาดไฟล์เกินกำหนด (สูงสุด 10MB)' }, { status: 400 });
+    }
+
+    // Check the content hash before writing to disk, so rejected duplicates
+    // do not leave orphaned files in the public uploads directory.
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const hash = crypto.createHash('sha256').update(bytes).digest('hex');
 
     // Prevent duplicate slip reuse: check if another order already used this slip hash!
     const existingOrderWithSlip = await prisma.order.findFirst({
       where: {
-        slipHash: uploadResult.hash,
+        slipHash: hash,
         id: { not: order.id },
       },
     });
@@ -43,6 +54,8 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    const uploadResult = await saveUploadedFile(file, 'slips');
 
     // Update order with slip info
     const updated = await prisma.order.update({

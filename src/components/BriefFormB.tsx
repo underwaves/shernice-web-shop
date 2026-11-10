@@ -77,7 +77,7 @@ export default function BriefFormB({ initialProduct, onSubmitSuccess }: BriefFor
       onSubmitSuccess({
         queueNumber: data.queueNumber,
         customerName: customerName.trim(),
-        totalPrice: initialProduct ? initialProduct.price : 0,
+        totalPrice: data.totalPrice,
       });
     } catch (err: any) {
       setError(err.message || 'เกิดข้อผิดพลาด ไม่สามารถส่งบรีฟได้');

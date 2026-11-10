@@ -53,8 +53,6 @@ export async function tryAwardPointForOrder(orderId: number) {
         status: 'APPROVED',
         OR: [
           { customerId: customer.id },
-          { customerName: customer.name },
-          { contactId: customer.contactId },
           { queueNumber: order.queueNumber },
         ],
       },
@@ -103,15 +101,14 @@ export async function awardPendingPointsOnReviewApproved(reviewId: number) {
   if (!review) return;
 
   // Find customer
-  const customer = await prisma.customer.findFirst({
-    where: {
-      OR: [
-        review.customerId ? { id: review.customerId } : {},
-        { name: review.customerName },
-        review.contactId ? { contactId: review.contactId } : {},
-      ],
-    },
-  });
+  const linkedOrder = review.queueNumber
+    ? await prisma.order.findUnique({ where: { queueNumber: review.queueNumber } })
+    : null;
+  const customer = review.customerId
+    ? await prisma.customer.findUnique({ where: { id: review.customerId } })
+    : linkedOrder?.customerId
+      ? await prisma.customer.findUnique({ where: { id: linkedOrder.customerId } })
+      : null;
 
   if (!customer) return;
 
@@ -122,7 +119,6 @@ export async function awardPendingPointsOnReviewApproved(reviewId: number) {
       pointsAwarded: false,
       OR: [
         { customerId: customer.id },
-        { customerName: customer.name },
         review.queueNumber ? { queueNumber: review.queueNumber } : {},
       ],
     },

@@ -4,7 +4,6 @@ import prisma from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 interface SafeOrder {
-  id: number;
   queueNumber: string;
   heroName: string;
   skinName: string;
@@ -21,14 +20,16 @@ interface SafeTransaction {
   createdAt: Date;
 }
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q')?.trim();
+    const body = await request.json();
+    const query = typeof body.q === 'string' ? body.q.trim() : '';
+    const contactId = typeof body.contactId === 'string' ? body.contactId.trim() : '';
+    const contactPlatform = typeof body.contactPlatform === 'string' ? body.contactPlatform.trim() : '';
 
-    if (!query) {
+    if (!query || !contactId || !['Line', 'Facebook', 'Instagram', 'Discord'].includes(contactPlatform)) {
       return NextResponse.json(
-        { error: 'กรุณากรอกชื่อหรือเลขคิวเพื่อค้นหาแต้มสะสม' },
+        { error: 'กรุณากรอกชื่อหรือเลขคิว พร้อม ID ช่องทางติดต่อที่ใช้สั่งงาน' },
         { status: 400 }
       );
     }
@@ -53,12 +54,13 @@ export async function GET(request: Request) {
         },
       });
 
+      if (matchingOrder?.contactId !== contactId || matchingOrder?.contactPlatform !== contactPlatform) matchingOrder = null;
       if (matchingOrder) {
         if (matchingOrder.customer) {
           customer = matchingOrder.customer;
         } else {
           customer = await prisma.customer.findFirst({
-            where: { name: matchingOrder.customerName },
+            where: { name: matchingOrder.customerName, contactId, contactPlatform },
             include: {
               pointTransactions: {
                 orderBy: { createdAt: 'desc' },
@@ -70,7 +72,7 @@ export async function GET(request: Request) {
     } else {
       // 2. Name search: Match EXACT name only (prevent partial substring leak)
       customer = await prisma.customer.findFirst({
-        where: { name: { equals: query } },
+        where: { name: { equals: query }, contactId, contactPlatform },
         include: {
           pointTransactions: {
             orderBy: { createdAt: 'desc' },
@@ -81,7 +83,7 @@ export async function GET(request: Request) {
       // Fallback: If customer record wasn't created yet, check order with exact customer name
       if (!customer) {
         matchingOrder = await prisma.order.findFirst({
-          where: { customerName: { equals: query } },
+          where: { customerName: { equals: query }, contactId, contactPlatform },
           orderBy: { createdAt: 'desc' },
         });
       }
@@ -101,9 +103,6 @@ export async function GET(request: Request) {
     const reviewConditions: any[] = [];
     if (customerId) {
       reviewConditions.push({ customerId });
-    }
-    if (customerName) {
-      reviewConditions.push({ customerName });
     }
     if (matchingOrder?.queueNumber) {
       reviewConditions.push({ queueNumber: matchingOrder.queueNumber });
@@ -155,7 +154,6 @@ export async function GET(request: Request) {
       });
 
       sanitizedOrders = rawOrders.map((ord) => ({
-        id: ord.id,
         queueNumber: ord.queueNumber,
         heroName: ord.heroName,
         skinName: ord.skinName,
@@ -182,10 +180,9 @@ export async function GET(request: Request) {
       (tx: SafeTransaction) => tx.type === 'REDEEMED' || (tx.type === 'ADJUSTED' && tx.amount < 0)
     );
 
-    // Sanitized customer profile: Only public display name, ID (for redeem), and point balance
-    // NEVER expose contactPlatform or contactId
+    // Never expose the internal customer ID or contact details. Redemption uses
+    // a queue number plus the verified contact ID instead.
     const sanitizedCustomer = {
-      id: customerId,
       name: customerName,
       pointsBalance: customer?.pointsBalance || 0,
     };

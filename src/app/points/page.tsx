@@ -25,6 +25,8 @@ function PointsContent() {
   const { settings } = useStore();
 
   const [searchInput, setSearchInput] = useState(qParam);
+  const [verificationPlatform, setVerificationPlatform] = useState('Line');
+  const [verificationContact, setVerificationContact] = useState('');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,19 +45,26 @@ function PointsContent() {
   const [redeeming, setRedeeming] = useState(false);
   const [redeemSuccessMsg, setRedeemSuccessMsg] = useState('');
 
-  const lookupPoints = async (query: string) => {
-    if (!query.trim()) return;
+  const lookupPoints = async (query: string, contact: string = verificationContact) => {
+    if (!query.trim() || !contact.trim()) {
+      setError('กรุณากรอกชื่อหรือเลขคิว พร้อม ID ช่องทางติดต่อที่ใช้สั่งงาน');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/points/lookup?q=${encodeURIComponent(query.trim())}`);
+      const res = await fetch('/api/points/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: query.trim(), contactPlatform: verificationPlatform, contactId: contact.trim() }),
+      });
       const resData = await res.json();
       if (!res.ok) {
         throw new Error(resData.error || 'ไม่พบข้อมูลแต้มสะสม');
       }
       setData(resData);
       setReviewName(resData.customer?.name || '');
-      setReviewContact(resData.customer?.contactId || '');
+      setReviewContact(contact.trim());
     } catch (e: any) {
       setError(e.message || 'เกิดข้อผิดพลาดในการค้นหา');
       setData(null);
@@ -67,7 +76,6 @@ function PointsContent() {
   useEffect(() => {
     if (qParam) {
       setSearchInput(qParam);
-      lookupPoints(qParam);
     }
   }, [qParam]);
 
@@ -95,9 +103,9 @@ function PointsContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName: reviewName.trim(),
-          contactPlatform: 'Line',
+          contactPlatform: verificationPlatform,
           contactId: reviewContact.trim(),
-          queueNumber: searchInput.trim(),
+          queueNumber: data?.customerOrders?.[0]?.queueNumber || searchInput.trim(),
           rating: reviewRating,
           comment: reviewComment.trim(),
         }),
@@ -120,7 +128,8 @@ function PointsContent() {
   };
 
   const handleRedeem = async (rewardName: string) => {
-    if (!data?.customer?.id) return;
+    const queueNumber = data?.customerOrders?.[0]?.queueNumber;
+    if (!queueNumber || !verificationContact.trim()) return;
     if (data.customer.pointsBalance < 10) {
       alert('แต้มสะสมยังไม่ครบ 10 แต้มค่ะ');
       return;
@@ -137,9 +146,10 @@ function PointsContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerId: data.customer.id,
+          queueNumber,
+          contactPlatform: verificationPlatform,
+          contactId: verificationContact.trim(),
           rewardName,
-          pointsRequired: 10,
         }),
       });
 
@@ -160,6 +170,7 @@ function PointsContent() {
 
   const points = data?.customer?.pointsBalance || 0;
   const target = 10;
+  const canRedeem = points >= target && (data?.customerOrders?.length || 0) > 0;
 
   return (
     <div className="max-w-xl mx-auto px-4 pb-28 pt-4">
@@ -182,14 +193,15 @@ function PointsContent() {
         <label className="block text-xs font-semibold text-gray-600 font-thai mb-1.5">
           ค้นหาแต้มด้วย ชื่อลูกค้า หรือ หมายเลขคิว (เช่น SN001)
         </label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="กรอกชื่อ หรือเลขคิว เช่น SN001"
-            className="flex-1 px-4 py-2.5 rounded-2xl border border-rose-100 bg-rose-50/20 focus:bg-white focus:border-rose-400 focus:outline-none text-sm font-thai"
-          />
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="กรอกชื่อ หรือเลขคิว เช่น SN001"
+              className="flex-1 px-4 py-2.5 rounded-2xl border border-rose-100 bg-rose-50/20 focus:bg-white focus:border-rose-400 focus:outline-none text-sm font-thai"
+            />
           <button
             type="button"
             onClick={() => lookupPoints(searchInput)}
@@ -199,6 +211,29 @@ function PointsContent() {
             <Search className="w-4 h-4" />
             <span>{loading ? 'ค้นหา...' : 'เช็คแต้ม'}</span>
           </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <select
+              value={verificationPlatform}
+              onChange={(event) => setVerificationPlatform(event.target.value)}
+              aria-label="ช่องทางติดต่อที่ใช้สั่งงาน"
+              className="px-3 py-2.5 rounded-2xl border border-rose-100 bg-rose-50/20 focus:bg-white focus:border-rose-400 focus:outline-none text-sm font-thai"
+            >
+              <option value="Line">Line</option>
+              <option value="Facebook">Facebook</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Discord">Discord</option>
+            </select>
+            <input
+              type="text"
+              autoComplete="off"
+              value={verificationContact}
+              onChange={(event) => setVerificationContact(event.target.value)}
+              placeholder="ID ช่องทางติดต่อที่ใช้สั่งงาน"
+              aria-label="ID ช่องทางติดต่อที่ใช้สั่งงาน"
+              className="sm:col-span-2 px-4 py-2.5 rounded-2xl border border-rose-100 bg-rose-50/20 focus:bg-white focus:border-rose-400 focus:outline-none text-sm font-thai"
+            />
+          </div>
         </div>
 
         {error && (
@@ -296,7 +331,7 @@ function PointsContent() {
               </h4>
               <div className="divide-y divide-rose-50">
                 {data.customerOrders.map((ord: any) => (
-                  <div key={ord.id} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div key={ord.queueNumber} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                     <div>
                       <span className="font-mono font-bold text-rose-600 mr-2">{ord.queueNumber}</span>
                       <span className="text-gray-700">{ord.heroName} - {ord.skinName}</span>
@@ -384,14 +419,14 @@ function PointsContent() {
                   <button
                     type="button"
                     onClick={() => handleRedeem(reward)}
-                    disabled={points < 10 || redeeming}
+                    disabled={!canRedeem || redeeming}
                     className={`mt-3 py-1.5 px-3 rounded-xl font-bold text-xs font-thai transition-all active:scale-95 ${
-                      points >= 10
+                      canRedeem
                         ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-sm shadow-rose-200'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
                   >
-                    {points >= 10 ? 'กดแลกรางวัล' : 'แต้มยังไม่พอ'}
+                    {canRedeem ? 'กดแลกรางวัล' : points >= 10 ? 'ยืนยันคิวก่อนแลก' : 'แต้มยังไม่พอ'}
                   </button>
                 </div>
               ))}

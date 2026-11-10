@@ -4,11 +4,22 @@ import { cookies } from 'next/headers';
 import crypto from 'crypto';
 
 const SESSION_COOKIE_NAME = 'shernice_admin_token';
-const SECRET = process.env.JWT_SECRET || 'shernice-super-secret-key';
+const DEV_SECRET = 'local-development-only-secret-do-not-deploy';
+
+function getSessionSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    if (!secret || secret.length < 32 || /shernice|secret|changeme|replace/i.test(secret)) {
+      throw new Error('Production requires a unique JWT_SECRET of at least 32 characters.');
+    }
+    return secret;
+  }
+  return secret || DEV_SECRET;
+}
 
 export function createToken(code: string): string {
   const payload = `${code}:${Date.now()}`;
-  const hmac = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+  const hmac = crypto.createHmac('sha256', getSessionSecret()).update(payload).digest('hex');
   return Buffer.from(`${payload}:${hmac}`).toString('base64');
 }
 
@@ -18,8 +29,10 @@ export function verifyToken(token: string): boolean {
     const parts = raw.split(':');
     if (parts.length !== 3) return false;
     const [code, timestamp, hmac] = parts;
-    const expected = crypto.createHmac('sha256', SECRET).update(`${code}:${timestamp}`).digest('hex');
-    if (hmac !== expected) return false;
+    const expected = crypto.createHmac('sha256', getSessionSecret()).update(`${code}:${timestamp}`).digest('hex');
+    const providedBuffer = Buffer.from(hmac, 'hex');
+    const expectedBuffer = Buffer.from(expected, 'hex');
+    if (providedBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(providedBuffer, expectedBuffer)) return false;
     // Expire session after 7 days
     const age = Date.now() - parseInt(timestamp, 10);
     if (age > 7 * 24 * 60 * 60 * 1000) return false;
@@ -32,8 +45,9 @@ export function verifyToken(token: string): boolean {
 export async function checkAdminPassword(enteredCode: string): Promise<boolean> {
   const setting = await prisma.setting.findFirst({ where: { id: 1 } });
   if (!setting || !setting.adminPasswordHash) {
-    // fallback to initial 2247
-    return enteredCode === (process.env.ADMIN_INITIAL_CODE || '2247');
+    if (process.env.NODE_ENV === 'production') return false;
+    const initialCode = process.env.ADMIN_INITIAL_CODE;
+    return Boolean(initialCode && enteredCode === initialCode);
   }
   return bcrypt.compareSync(enteredCode, setting.adminPasswordHash);
 }
