@@ -28,6 +28,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useStore } from '@/components/ThemeContextProvider';
+import { getYouTubeVideoId } from '@/components/BackgroundMusic';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -1460,7 +1461,14 @@ export default function AdminPage() {
 
             {/* Background Music Config */}
             <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-100 space-y-3">
-              <span className="font-bold text-rose-700 block text-sm">เพลงประกอบ (Background Music)</span>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-rose-700 block text-sm">เพลงประกอบ (Background Music)</span>
+                {settingsForm.bgMusicUrl && (
+                  <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-rose-100 text-rose-700">
+                    {getYouTubeVideoId(settingsForm.bgMusicUrl) ? '🎬 YouTube Player' : '🎵 Audio Direct'}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -1475,14 +1483,53 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block text-gray-600 mb-1">URL ไฟล์เสียง (MP3/OGG)</label>
+                <label className="block text-gray-600 mb-1">
+                  ลิงก์เพลงประกอบ (รองรับทั้ง YouTube และไฟล์ MP3/OGG)
+                </label>
                 <input
-                  type="url"
+                  type="text"
                   value={settingsForm.bgMusicUrl || ''}
                   onChange={(e) => setSettingsForm({ ...settingsForm, bgMusicUrl: e.target.value })}
-                  placeholder="https://...mp3"
+                  placeholder="https://www.youtube.com/watch?v=... หรือ https://youtu.be/... หรือไฟล์ .mp3"
                   className="w-full px-3 py-2 rounded-xl border border-rose-100 bg-white text-xs font-mono"
                 />
+
+                {(() => {
+                  const ytId = getYouTubeVideoId(settingsForm.bgMusicUrl || '');
+                  if (ytId) {
+                    return (
+                      <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-xs text-emerald-800">
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="text-base">🎬</span>
+                          <div className="truncate">
+                            <span className="font-bold text-emerald-900">ตรวจพบเพลง YouTube: </span>
+                            <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-300">ID: {ytId}</span>
+                          </div>
+                        </div>
+                        <a
+                          href={`https://www.youtube.com/watch?v=${ytId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 text-emerald-600 hover:text-emerald-800 underline font-medium text-[11px]"
+                        >
+                          เปิดดูคลิป ↗
+                        </a>
+                      </div>
+                    );
+                  } else if (settingsForm.bgMusicUrl) {
+                    return (
+                      <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-2 text-xs text-blue-800">
+                        <span>🎵</span>
+                        <span>ตรวจพบไฟล์เสียง Audio Direct (.mp3 / .ogg)</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      💡 ใส่ลิงก์ YouTube (เช่น <code>https://youtu.be/...</code> หรือ <code>https://www.youtube.com/watch?v=...</code>) หรือไฟล์เสียง <code>.mp3</code> ได้เลย ระบบจะเล่นเพลงให้อัตโนมัติ
+                    </p>
+                  );
+                })()}
               </div>
             </div>
 
